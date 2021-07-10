@@ -1,3 +1,4 @@
+#include "gpt.h"
 #include "mbr.h"
 
 #include <printf.h>
@@ -22,34 +23,48 @@ void write_mbr(FILE *file_ptr) {
   fwrite(&mbr, LOGICAL_BLOCK_SIZE, 1, file_ptr);
 }
 
-void write_primary_gpt_header(FILE *file_ptr) {
-  char buffer[LOGICAL_BLOCK_SIZE];
-  memset(buffer, '\0', LOGICAL_BLOCK_SIZE);
+void write_gpt(FILE *file_ptr) {
+  gpt_header_t header = {
+      .signature = "EFI PART",
+      .revision = {0x00, 0x00, 0x01, 0x00},
+      .header_size = GPT_HEADER_SIZE,
+      .header_lba = get_lba(1),
+      .backup_lba = get_lba(-GPT_LBA_COUNT),
+      .first_usable_lba = get_lba(GPT_LBA_COUNT + 1),
+      .last_usable_lba = get_lba(-GPT_LBA_COUNT - 1),
+      .partition_entries_lba = get_lba(2),
+      //.disk_guid = , // TODO: generate guid
+      .partitions_count = GPT_LBA_COUNT - 1,
+      .partition_entry_size = {0x80, 0x00, 0x00, 0x00}, // TODO: there must be more to this
+      //.partition_entries_crc_32 = // TODO: generate this
+  };
 
-  for (int i = 0; i < GPT_LBA_COUNT; ++i) {
+  // TODO: calculate CRC-32 of header
+  //header.header_crc_32 =
+
+  // TODO: calculate CRC-32 of partition entries array
+  //header.partition_entries_crc_32 = ;
+
+  fwrite(&header, LOGICAL_BLOCK_SIZE, 1, file_ptr);
+
+  // GPT entries
+  char buffer[LOGICAL_BLOCK_SIZE];
+  for (int i = 0; i < GPT_LBA_COUNT - 1; ++i) {
+    memset(buffer, '\0', LOGICAL_BLOCK_SIZE);
     fwrite(buffer, LOGICAL_BLOCK_SIZE, 1, file_ptr);
   }
-}
 
-void write_secondary_gpt_header(FILE *file_ptr) {
-  char buffer[LOGICAL_BLOCK_SIZE];
-  memset(buffer, '\0', LOGICAL_BLOCK_SIZE);
+  // FIXME: fseeko's offset is signed 64bit whereas LBA is unsigned 64bit. Trouble!
+  fseeko(file_ptr, get_lba(-GPT_LBA_COUNT - 1), SEEK_SET);
 
-  for (int i = 0; i < GPT_LBA_COUNT; ++i) {
+  // Backup GPT entries
+  for (int i = 0; i < GPT_LBA_COUNT - 1; ++i) {
+    memset(buffer, '\0', LOGICAL_BLOCK_SIZE);
     fwrite(buffer, LOGICAL_BLOCK_SIZE, 1, file_ptr);
   }
-}
 
-void write_blank(FILE *file_ptr) {
-  char buffer[LOGICAL_BLOCK_SIZE];
-  memset(buffer, '\0', LOGICAL_BLOCK_SIZE);
-
-  // empty blocks count equals total blocks - (primary and secondary gpt blocks) - one mbr block
-  int count = LOGICAL_BLOCK_MAX - (GPT_LBA_COUNT * 2) - 1;
-
-  for (int i = 0; i < count; ++i) {
-    fwrite(buffer, LOGICAL_BLOCK_SIZE, 1, file_ptr);
-  }
+  // Backup GPT header
+  fwrite(&header, LOGICAL_BLOCK_SIZE, 1, file_ptr);
 }
 
 int main() {
@@ -61,9 +76,7 @@ int main() {
   }
 
   write_mbr(file_ptr);
-  write_primary_gpt_header(file_ptr);
-  write_blank(file_ptr);
-  write_secondary_gpt_header(file_ptr);
+  write_gpt(file_ptr);
 
   fclose(file_ptr);
 
