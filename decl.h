@@ -13,7 +13,11 @@
 
 // TODO: support 1024, 2048, 4096, etc
 #define LOGICAL_BLOCK_SIZE 512
+// total number of blocks we should fit in this GPT disk under creation
 #define LOGICAL_BLOCK_MAX (DISK_SIZE / LOGICAL_BLOCK_SIZE)
+// total number of blocks we can possibly fit in a GPT disk of this block size
 #define LOGICAL_BLOCK_THEORETICAL_MAX (-1ULL / LOGICAL_BLOCK_SIZE)
+// total number of blocks we can practically fit in this GPT disk due to this codebase limitations
+#define LOGICAL_BLOCK_PRACTICAL_MAX ((-1ULL / LOGICAL_BLOCK_SIZE) >> 1)
 
 #endif //THATDISKCREATOR__DECL_H
