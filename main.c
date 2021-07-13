@@ -7,10 +7,10 @@
 
 void write_mbr(FILE *file_ptr) {
   mbr_entry_t pmbr_partition = {
-      .boot_indicator = 0,    // any value other than 0 is non-compliant
+      .boot_indicator = 0, // any value other than 0 is non-compliant
       .partition_type = 0xEE, // protective EFI GPT
-      .first_sector = {0x00, 0x02, 0x00},
-      .last_sector = {0xFF, 0xFF, 0xFF},
+      .first_sector = {0x00, 0x02, 0x00}, // from right after the first 512 bytes
+      .last_sector = {0xFF, 0xFF, 0xFF}, // all the way to the end of the disk
       .first_lba = 1, // LBA 1
       .sectors_count = LOGICAL_BLOCK_MAX - 1,
   };

@@ -18,10 +18,10 @@ typedef struct {
 
 // Logical Block bytes long
 typedef struct {
-  uint8_t bootstrap[440];     // unused by UEFI
-  uint8_t disk_signature[4];  // unused by UEFI. set to 0.
+  uint8_t bootstrap[440]; // unused by UEFI
+  uint8_t disk_signature[4]; // unused by UEFI. set to 0.
   uint8_t copy_protection[2]; // unused by UEFI. set to 0.
-  mbr_entry_t partition[4];   // only the first partition is used by UEFI
+  mbr_entry_t partition[4]; // only the first partition is used by UEFI
   uint8_t boot_signature[2];
   uint8_t slack[LOGICAL_BLOCK_SIZE - MBR_SIZE];
 } __attribute__((packed)) mbr_t;
