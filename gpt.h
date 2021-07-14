@@ -16,7 +16,7 @@ typedef struct {
   uint64_t last_lba;
   uint8_t attributes[8];
   uint8_t partition_name[72]; // 36 UTF-16LE bytes
-} __attribute__((packed)) gpt_entry_t;
+} __attribute__((packed)) __attribute__((aligned(128))) gpt_entry_t;
 
 // Logical Block bytes long
 typedef struct {
@@ -35,7 +35,7 @@ typedef struct {
   uint8_t partition_entry_size[4];
   uint8_t partition_entries_crc_32[4];
   char slack[LOGICAL_BLOCK_SIZE - GPT_HEADER_SIZE]; // set to 0 across the board
-} __attribute__((packed)) gpt_header_t;
+} __attribute__((packed)) __attribute__((aligned(LOGICAL_BLOCK_SIZE))) gpt_header_t;
 
 // valid index range is [-34,+34]
 uint64_t get_lba(int8_t index) {

@@ -14,7 +14,7 @@ typedef struct {
   uint8_t last_sector[3];
   uint32_t first_lba;
   uint32_t sectors_count;
-} __attribute__((packed)) mbr_entry_t;
+} __attribute__((packed)) __attribute__((aligned(16))) mbr_entry_t;
 
 // Logical Block bytes long
 typedef struct {
@@ -24,6 +24,6 @@ typedef struct {
   mbr_entry_t partition[4]; // only the first partition is used by UEFI
   uint8_t boot_signature[2];
   uint8_t slack[LOGICAL_BLOCK_SIZE - MBR_SIZE];
-} __attribute__((packed)) mbr_t;
+} __attribute__((packed)) __attribute__((aligned(LOGICAL_BLOCK_SIZE))) mbr_t;
 
 #endif // THATDISKCREATOR__MBR_H

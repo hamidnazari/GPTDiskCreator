@@ -15,6 +15,6 @@ typedef struct {
   uint8_t clock_sequence_low;
   uint8_t node[6];
 
-} __attribute__((packed)) guid_t;
+} __attribute__((packed)) __attribute__((aligned(16))) guid_t;
 
 #endif // THATDISKCREATOR__GUID_H
