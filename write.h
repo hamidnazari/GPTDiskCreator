@@ -1,6 +1,7 @@
 #ifndef THATDISKCREATOR__WRITE_H
 #define THATDISKCREATOR__WRITE_H
 
+#include "crc_32.h"
 #include "gpt.h"
 #include "mbr.h"
 #include <printf.h>
@@ -52,8 +53,7 @@ void write_gpt(FILE *file_ptr) {
       //.partition_entries_crc_32 = // TODO: generate this
   };
 
-  // TODO: calculate CRC-32 of header
-  //header.header_crc_32 =
+  header.header_crc_32 = calculate_crc_32((uint8_t *) &header, sizeof(gpt_header_t));
 
   // TODO: calculate CRC-32 of partition entries array
   //header.partition_entries_crc_32 = ;

@@ -23,7 +23,7 @@ typedef struct {
   uint8_t signature[8];
   uint8_t revision[4];
   uint8_t header_size[4];
-  uint8_t header_crc_32[4];
+  uint32_t header_crc_32;
   uint8_t reserved[4]; // set to 0 across the board
   uint64_t header_lba;
   uint64_t backup_lba;
@@ -33,7 +33,7 @@ typedef struct {
   uint64_t partition_entries_lba;
   uint8_t partitions_count[4];
   uint8_t partition_entry_size[4];
-  uint8_t partition_entries_crc_32[4];
+  uint32_t partition_entries_crc_32;
   char slack[LOGICAL_BLOCK_SIZE - GPT_HEADER_SIZE]; // set to 0 across the board
 } __attribute__((packed)) __attribute__((aligned(LOGICAL_BLOCK_SIZE))) gpt_header_t;
 
