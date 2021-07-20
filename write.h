@@ -3,6 +3,7 @@
 
 #include "crc_32.h"
 #include "gpt.h"
+#include "guid.h"
 #include "mbr.h"
 #include <printf.h>
 #include <stdlib.h>
@@ -47,7 +48,7 @@ void write_gpt(FILE *file_ptr) {
       .first_usable_lba = get_lba(GPT_LBA_COUNT + 1),
       .last_usable_lba = get_lba(-GPT_LBA_COUNT - 1),
       .partition_entries_lba = get_lba(2),
-      //.disk_guid = , // TODO: generate guid
+      .disk_guid = get_random_guid(),
       .partitions_count = GPT_LBA_COUNT - 1,
       .partition_entry_size = {0x80, 0x00, 0x00, 0x00}, // TODO: there must be more to this
       //.partition_entries_crc_32 = // TODO: generate this
