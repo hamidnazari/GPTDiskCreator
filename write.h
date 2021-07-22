@@ -9,9 +9,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-size_t write(const void *ptr, FILE *file_ptr) {
-  size_t nitems = 1;
-  size_t count = fwrite(ptr, LOGICAL_BLOCK_SIZE, nitems, file_ptr);
+size_t write(FILE *file_ptr, const void *ptr, size_t size) {
+  const size_t nitems = 1;
+  const size_t count = fwrite(ptr, size, nitems, file_ptr);
 
   if (count < nitems) {
     printf("Write to disk was unsuccessful!\n");
@@ -35,7 +35,7 @@ void write_mbr(FILE *file_ptr) {
       .boot_signature = {0x55, 0xAA},
   };
 
-  write(&mbr, file_ptr);
+  write(file_ptr, &mbr, LOGICAL_BLOCK_SIZE);
 }
 
 void write_gpt(FILE *file_ptr) {
@@ -51,34 +51,55 @@ void write_gpt(FILE *file_ptr) {
       .disk_guid = get_random_guid(),
       .partitions_count = GPT_LBA_COUNT - 1,
       .partition_entry_size = {0x80, 0x00, 0x00, 0x00}, // TODO: there must be more to this
-      //.partition_entries_crc_32 = // TODO: generate this
   };
 
   header.header_crc_32 = calculate_crc_32((uint8_t *) &header, sizeof(gpt_header_t));
 
-  // TODO: calculate CRC-32 of partition entries array
-  //header.partition_entries_crc_32 = ;
+  gpt_entry_t efi_partition = {
+      .type_guid = parse_guid(GUID_EFI_SYSTEM_PARTITION),
+      .partition_guid = get_random_guid(),
+      .first_lba = get_lba(GPT_LBA_COUNT),
+      .last_lba = get_lba(GPT_LBA_COUNT * 2),
+      .attributes = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
+      .partition_name = u"ESP",
+  };
 
-  write(&header, file_ptr);
+  gpt_entry_t main_partition = {
+      .type_guid = parse_guid(GUID_MICROSOFT_BASIC_DATA_PARTITION),
+      .partition_guid = get_random_guid(),
+      .first_lba = get_lba(GPT_LBA_COUNT),
+      .last_lba = get_lba(GPT_LBA_COUNT * 2),
+      .attributes = 0,
+      .partition_name = u"Main Partition",
+  };
+
+  const int partition_entries_count = GPT_PARTITION_ARRAY_SIZE / sizeof(gpt_entry_t);
+  gpt_entry_t partitions[partition_entries_count] = {
+      efi_partition,
+      main_partition,
+      0
+  };
+
+  header.partition_entries_crc_32 = calculate_crc_32((uint8_t *) &partitions, sizeof(partitions));
+
+  // GPT Header
+  write(file_ptr, &header, LOGICAL_BLOCK_SIZE);
 
   // GPT entries
-  char buffer[LOGICAL_BLOCK_SIZE];
-  for (int i = 0; i < GPT_LBA_COUNT - 1; ++i) {
-    memset(buffer, '\0', LOGICAL_BLOCK_SIZE);
-    write(buffer, file_ptr);
+  for (int i = 0; i < partition_entries_count; ++i) {
+    write(file_ptr, &partitions[i], sizeof(gpt_entry_t));
   }
 
   // FIXME: fseeko's offset is signed 64bit whereas LBA is unsigned 64bit. Trouble!
   fseeko(file_ptr, get_lba(-GPT_LBA_COUNT - 1), SEEK_SET);
 
   // Backup GPT entries
-  for (int i = 0; i < GPT_LBA_COUNT - 1; ++i) {
-    memset(buffer, '\0', LOGICAL_BLOCK_SIZE);
-    write(buffer, file_ptr);
+  for (int i = 0; i < partition_entries_count; ++i) {
+    write(file_ptr, &partitions[i], sizeof(gpt_entry_t));
   }
 
   // Backup GPT header
-  write(&header, file_ptr);
+  write(file_ptr, &header, LOGICAL_BLOCK_SIZE);
 }
 
 #endif //THATDISKCREATOR__WRITE_H

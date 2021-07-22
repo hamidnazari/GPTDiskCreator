@@ -15,7 +15,7 @@ typedef struct {
   uint64_t first_lba;
   uint64_t last_lba;
   uint8_t attributes[8];
-  uint8_t partition_name[72]; // 36 UTF-16LE bytes
+  uint16_t partition_name[36]; // 36 UTF-16LE bytes
 } __attribute__((packed)) __attribute__((aligned(128))) gpt_entry_t;
 
 // Logical Block bytes long

@@ -10,6 +10,7 @@
 // TODO: can be longer, min partition entries is 4
 // TODO: replace GPT_LBA_COUNT with a variable
 #define GPT_LBA_COUNT (1 + 32)
+#define GPT_PARTITION_ARRAY_SIZE 16384
 
 // TODO: support 1024, 2048, 4096, etc
 #define LOGICAL_BLOCK_SIZE 512
