@@ -1,6 +1,7 @@
 #ifndef THATDISKCREATOR__WRITE_H
 #define THATDISKCREATOR__WRITE_H
 
+
 #include "crc_32.h"
 #include "gpt.h"
 #include "guid.h"
@@ -8,6 +9,7 @@
 #include <printf.h>
 #include <stdlib.h>
 #include <string.h>
+
 
 size_t write(FILE *file_ptr, const void *ptr, size_t size) {
   const size_t nitems = 1;
@@ -19,6 +21,7 @@ size_t write(FILE *file_ptr, const void *ptr, size_t size) {
 
   return count;
 }
+
 
 void write_mbr(FILE *file_ptr) {
   mbr_entry_t pmbr_partition = {
@@ -37,6 +40,7 @@ void write_mbr(FILE *file_ptr) {
 
   write(file_ptr, &mbr, LOGICAL_BLOCK_SIZE);
 }
+
 
 void write_gpt(FILE *file_ptr) {
   gpt_header_t header = {
@@ -77,7 +81,7 @@ void write_gpt(FILE *file_ptr) {
   gpt_entry_t partitions[partition_entries_count] = {
       efi_partition,
       main_partition,
-      0
+      0,
   };
 
   header.partition_entries_crc_32 = calculate_crc_32((uint8_t *) &partitions, sizeof(partitions));
@@ -101,5 +105,6 @@ void write_gpt(FILE *file_ptr) {
   // Backup GPT header
   write(file_ptr, &header, LOGICAL_BLOCK_SIZE);
 }
+
 
 #endif //THATDISKCREATOR__WRITE_H

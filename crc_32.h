@@ -1,7 +1,9 @@
 #ifndef THATDISKCREATOR__CRC_32_H
 #define THATDISKCREATOR__CRC_32_H
 
+
 #include <stdint.h>
+
 
 const uint32_t CRC_32_TABLE[256] = {
     0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,
@@ -49,7 +51,6 @@ uint32_t calculate_crc_32(uint8_t *stream_ptr, uint32_t n) {
 
   return ~crc;
 }
-
 
 
 #endif //THATDISKCREATOR__CRC_32_H

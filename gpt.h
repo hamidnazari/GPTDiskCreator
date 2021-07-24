@@ -1,10 +1,12 @@
 #ifndef THATDISKCREATOR__GPT_H
 #define THATDISKCREATOR__GPT_H
 
+
 #include "decl.h"
 #include "guid.h"
 #include <stdint.h>
 #include <string.h>
+
 
 // INFO about EFI GPT PDF 2.9 Specs page 120 - 127
 
@@ -17,6 +19,7 @@ typedef struct {
   uint8_t attributes[8];
   uint16_t partition_name[36]; // 36 UTF-16LE bytes
 } __attribute__((packed)) __attribute__((aligned(128))) gpt_entry_t;
+
 
 // Logical Block bytes long
 typedef struct {
@@ -37,6 +40,7 @@ typedef struct {
   char slack[LOGICAL_BLOCK_SIZE - GPT_HEADER_SIZE]; // set to 0 across the board
 } __attribute__((packed)) __attribute__((aligned(LOGICAL_BLOCK_SIZE))) gpt_header_t;
 
+
 // valid index range is [-34,+34]
 uint64_t get_lba(int8_t index) {
   if (index > GPT_LBA_COUNT + 1 || index < -GPT_LBA_COUNT - 1) {
@@ -51,5 +55,6 @@ uint64_t get_lba(int8_t index) {
 
   return lba;
 }
+
 
 #endif // THATDISKCREATOR__GPT_H

@@ -2,6 +2,7 @@
 #include <printf.h>
 #include <stdlib.h>
 
+
 int main() {
   if (LOGICAL_BLOCK_MAX > LOGICAL_BLOCK_PRACTICAL_MAX) {
     fprintf(stderr, "Disk size and block size too large for this program.\n");

@@ -1,6 +1,7 @@
 #ifndef THATDISKCREATOR__DECL_H
 #define THATDISKCREATOR__DECL_H
 
+
 #define DISK_SIZE_MB 1
 #define DISK_SIZE (DISK_SIZE_MB * 1024 * 1024)
 #define DISK_FILE_NAME "disk.hdd"
@@ -20,5 +21,6 @@
 #define LOGICAL_BLOCK_THEORETICAL_MAX (-1ULL / LOGICAL_BLOCK_SIZE)
 // total number of blocks we can practically fit in this GPT disk due to this codebase limitations
 #define LOGICAL_BLOCK_PRACTICAL_MAX ((-1ULL / LOGICAL_BLOCK_SIZE) >> 1)
+
 
 #endif //THATDISKCREATOR__DECL_H
