@@ -26,8 +26,8 @@ typedef struct {
   uint8_t copy_protection[2]; // unused by UEFI. set to 0.
   mbr_entry_t partition[4]; // only the first partition is used by UEFI
   uint8_t boot_signature[2];
-  uint8_t slack[LOGICAL_BLOCK_SIZE - MBR_SIZE];
-} __attribute__((packed)) __attribute__((aligned(LOGICAL_BLOCK_SIZE))) mbr_t;
+  uint8_t slack[LOGICAL_BLOCK_SIZE_B - MBR_SIZE_B];
+} __attribute__((packed)) __attribute__((aligned(LOGICAL_BLOCK_SIZE_B))) mbr_t;
 
 
 #endif // THATDISKCREATOR__MBR_H

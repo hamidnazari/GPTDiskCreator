@@ -35,10 +35,10 @@ typedef struct {
   guid_t disk_guid;
   uint64_t partition_entries_lba;
   uint8_t partitions_count[4];
-  uint8_t partition_entry_size[4];
+  uint32_t partition_entry_size;
   uint32_t partition_entries_crc_32;
-  char slack[LOGICAL_BLOCK_SIZE - GPT_HEADER_SIZE]; // set to 0 across the board
-} __attribute__((packed)) __attribute__((aligned(LOGICAL_BLOCK_SIZE))) gpt_header_t;
+  char slack[LOGICAL_BLOCK_SIZE_B - GPT_HEADER_SIZE_B]; // set to 0 across the board
+} __attribute__((packed)) __attribute__((aligned(LOGICAL_BLOCK_SIZE_B))) gpt_header_t;
 
 
 // valid index range is [-34,+34]
@@ -51,9 +51,15 @@ uint64_t get_lba(int8_t index) {
   uint64_t abs_index = index < 0 ? (LOGICAL_BLOCK_MAX + index + 1) : index;
 
   // if overflow is inevitable set all bits to 1
-  uint64_t lba = abs_index < LOGICAL_BLOCK_THEORETICAL_MAX ? abs_index * LOGICAL_BLOCK_SIZE : -1ULL;
+  uint64_t lba = abs_index < LOGICAL_BLOCK_THEORETICAL_MAX ? abs_index * LOGICAL_BLOCK_SIZE_B : -1ULL;
 
   return lba;
+}
+
+
+// returns last LBA index for the specified size and offset
+uint64_t allocate_lba(u_int64_t offset, u_int32_t size) {
+  return size / LOGICAL_BLOCK_SIZE_B + offset;
 }
 
 
