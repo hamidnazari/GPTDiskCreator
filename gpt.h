@@ -41,21 +41,15 @@ typedef struct {
 } __attribute__((packed)) __attribute__((aligned(LOGICAL_BLOCK_SIZE_B))) gpt_header_t;
 
 
-// valid index range is [-34,+34]
-uint64_t get_lba(int8_t index) {
-  if (index > GPT_LBA_COUNT + 1 || index < -GPT_LBA_COUNT - 1) {
-    return 0;
-  }
-
+uint64_t get_lba(int64_t index) {
   // index -1 is the very last LBA, index -2 is the one before it and so on.
-  uint64_t abs_index = index < 0 ? (LOGICAL_BLOCK_MAX + index + 1) : index;
+  uint64_t abs_index = index >= 0 ? index : (LOGICAL_BLOCK_MAX + index + 1);
 
   // if overflow is inevitable set all bits to 1
   uint64_t lba = abs_index < LOGICAL_BLOCK_THEORETICAL_MAX ? abs_index * LOGICAL_BLOCK_SIZE_B : -1ULL;
 
   return lba;
 }
-
 
 // returns last LBA index for the specified size and offset
 uint64_t allocate_lba(u_int64_t offset, u_int32_t size) {

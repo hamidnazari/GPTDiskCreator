@@ -3,6 +3,7 @@
 
 
 #include "crc_32.h"
+#include "fat_32.h"
 #include "gpt.h"
 #include "guid.h"
 #include "mbr.h"
@@ -23,6 +24,12 @@ static size_t write(FILE *file_ptr, const void *ptr, size_t size) {
   }
 
   return count;
+}
+
+
+static void seek_lba(FILE *file_ptr, uint64_t index) {
+  // FIXME: fseeko's offset is signed 64bit whereas LBA is unsigned 64bit. Trouble!
+  fseeko(file_ptr, get_lba(index), SEEK_SET);
 }
 
 
@@ -79,7 +86,7 @@ void write_gpt(FILE *file_ptr) {
   gpt_entry_t main_partition = {
       .type_guid = parse_guid(GUID_MICROSOFT_BASIC_DATA_PARTITION),
       .partition_guid = get_random_guid(),
-      .first_lba = esp_last_lba_index + 1,
+      .first_lba = esp_last_lba_index + 1, // FIXME: overflow when cluster size > logical block size
       .last_lba = main_partition_last_lba_index,
       .attributes = 0,
       .partition_name = u"Main Partition",
@@ -101,9 +108,7 @@ void write_gpt(FILE *file_ptr) {
   for (uint8_t i = 0; i < partition_entries_count; ++i) {
     write(file_ptr, &partitions[i], sizeof(gpt_entry_t));
   }
-
-  // FIXME: fseeko's offset is signed 64bit whereas LBA is unsigned 64bit. Trouble!
-  fseeko(file_ptr, get_lba(-GPT_LBA_COUNT - 1), SEEK_SET);
+  seek_lba(file_ptr, -GPT_LBA_COUNT - 1);
 
   // Backup GPT entries
   for (uint8_t i = 0; i < partition_entries_count; ++i) {
@@ -118,6 +123,75 @@ void write_gpt(FILE *file_ptr) {
 
   // Backup GPT header
   write(file_ptr, &header, LOGICAL_BLOCK_SIZE_B);
+}
+
+
+static void write_volume(FILE *file_ptr, uint64_t offset, uint32_t size, char *label) {
+  fat_32_ebpb_t ebpb = {
+      .jump_boot = {0xEB, 0x58, 0x90},
+      .oem = "ThatOS64",
+      .bytes_per_sector = LOGICAL_BLOCK_SIZE_B,
+      .sectors_per_cluster = FAT_32_CLUSTER_SIZE_B / LOGICAL_BLOCK_SIZE_B,
+      .reserved_sectors_count = 32,
+      .number_of_fats = 2,
+      .media_descriptor = 0xF8,
+      .sectors_per_track = 32,
+      .number_of_heads = 64,
+      .large_total_sectors_count = size / LOGICAL_BLOCK_SIZE_B,
+      .root_directory_cluster_number = 2,
+      .fsinfo_sector_number = 1,
+      .backup_boot_sector_cluster_number = 6,
+      .drive_number = 0x80,
+      .extended_boot_signature = 0x29,
+      .serial_number = get_serial_number(),
+      .system_identifier = "FAT32   ",
+      .boot_signature = {0x55, 0xAA},
+  };
+
+  memcpy(&ebpb.volume_label, label, sizeof(ebpb.volume_label));
+
+  ebpb.sectors_per_fat_32 =
+      get_fat_size(ebpb.large_total_sectors_count, ebpb.reserved_sectors_count, ebpb.sectors_per_cluster, ebpb.number_of_fats);
+
+  fat_32_fsinfo_t fsinfo = {
+      .lead_signature = 0x41615252,
+      .struct_signature = 0x61417272,
+      .free_cluster_count = ebpb.large_total_sectors_count - ebpb.reserved_sectors_count - (ebpb.sectors_per_fat_32 * ebpb.number_of_fats) - 1,
+      .next_free_cluster = 2,
+      .trail_signature = 0xAA550000,
+  };
+
+  seek_lba(file_ptr, offset);
+  write(file_ptr, &ebpb, sizeof(ebpb));
+
+  // FS Information Sector
+  write(file_ptr, &fsinfo, sizeof(fsinfo));
+
+  // Backup Boot Sector
+  seek_lba(file_ptr, offset + ebpb.backup_boot_sector_cluster_number);
+  write(file_ptr, &ebpb, sizeof(ebpb));
+
+  uint32_t clusters[3] = {
+      0x0FFFFF00 | ebpb.media_descriptor,
+      0x0FFFFFFF,
+      0x0FFFFFF8, // end-of-file for root directory
+  };
+
+  uint64_t fat_region_offset = offset + ebpb.reserved_sectors_count;
+
+  // FAT Region
+  for (uint8_t i = 0; i < ebpb.number_of_fats; ++i) {
+    uint64_t fat_offset = ebpb.sectors_per_fat_32 * i;
+    seek_lba(file_ptr, fat_region_offset + fat_offset);
+    write(file_ptr, &clusters, sizeof(clusters));
+  }
+}
+
+void write_volumes(FILE *file_ptr) {
+  const uint64_t esp_last_lba_index = allocate_lba(esp_first_lba_index, ESP_SIZE_B) - 1;
+
+  write_volume(file_ptr, esp_first_lba_index, ESP_SIZE_B, "ESP Volume ");
+  write_volume(file_ptr, esp_last_lba_index + 1, MAIN_VOLUME_SIZE_B, "Main Volume");
 }
 
 

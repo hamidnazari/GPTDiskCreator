@@ -18,6 +18,7 @@ int main() {
 
   write_mbr(file_ptr);
   write_gpt(file_ptr);
+  write_volumes(file_ptr);
 
   fclose(file_ptr);
 
