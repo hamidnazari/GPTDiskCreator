@@ -110,6 +110,12 @@ void write_gpt(FILE *file_ptr) {
     write(file_ptr, &partitions[i], sizeof(gpt_entry_t));
   }
 
+  header.header_crc_32 = 0;
+  header.header_lba = LOGICAL_BLOCK_MAX - 1;
+  header.backup_lba = 1;
+  header.partition_entries_lba = LOGICAL_BLOCK_MAX - GPT_LBA_COUNT;
+  header.header_crc_32 = calculate_crc_32((uint8_t *) &header, GPT_HEADER_SIZE_B);
+
   // Backup GPT header
   write(file_ptr, &header, LOGICAL_BLOCK_SIZE_B);
 }
