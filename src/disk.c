@@ -1,37 +1,28 @@
-#ifndef THATDISKCREATOR__WRITE_H
-#define THATDISKCREATOR__WRITE_H
-
-
+#include "disk.h"
 #include "crc_32.h"
 #include "fat_32.h"
 #include "gpt.h"
 #include "guid.h"
 #include "mbr.h"
-#include <printf.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include "string.h"
 
 static const uint64_t esp_first_lba_index = 2048; // TODO: replace with GPT_LBA_COUNT+1?
-
 
 static size_t write(FILE *file_ptr, const void *ptr, size_t size) {
   const size_t nitems = 1;
   const size_t count = fwrite(ptr, size, nitems, file_ptr);
 
   if (count < nitems) {
-    printf("Write to disk was unsuccessful!\n");
+    fprintf(stderr, "Write to disk was unsuccessful!\n");
   }
 
   return count;
 }
 
-
 static void seek_lba(FILE *file_ptr, uint64_t index) {
   // FIXME: fseeko's offset is signed 64bit whereas LBA is unsigned 64bit. Trouble!
   fseeko(file_ptr, get_lba(index), SEEK_SET);
 }
-
 
 void write_mbr(FILE *file_ptr) {
   mbr_entry_t pmbr_partition = {
@@ -50,7 +41,6 @@ void write_mbr(FILE *file_ptr) {
 
   write(file_ptr, &mbr, LOGICAL_BLOCK_SIZE_B);
 }
-
 
 void write_gpt(FILE *file_ptr) {
   const uint32_t partition_entry_size = sizeof(gpt_entry_t);
@@ -125,7 +115,6 @@ void write_gpt(FILE *file_ptr) {
   write(file_ptr, &header, LOGICAL_BLOCK_SIZE_B);
 }
 
-
 static void write_volume(FILE *file_ptr, uint64_t offset, uint32_t size, char *label) {
   fat_32_ebpb_t ebpb = {
       .jump_boot = {0xEB, 0x58, 0x90},
@@ -193,6 +182,3 @@ void write_volumes(FILE *file_ptr) {
   write_volume(file_ptr, esp_first_lba_index, ESP_SIZE_B, "ESP Volume ");
   write_volume(file_ptr, esp_last_lba_index + 1, MAIN_VOLUME_SIZE_B, "Main Volume");
 }
-
-
-#endif //THATDISKCREATOR__WRITE_H

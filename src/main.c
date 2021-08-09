@@ -1,7 +1,7 @@
-#include "write.h"
+#include "decl.h"
+#include "disk.h"
 #include <printf.h>
 #include <stdlib.h>
-
 
 int main() {
   if (LOGICAL_BLOCK_MAX > LOGICAL_BLOCK_PRACTICAL_MAX) {

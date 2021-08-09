@@ -1,4 +1,7 @@
 .idea
+*.patch
+*.hdd
 cmake-build-debug
 /build
-*.patch
+/mnt
+
