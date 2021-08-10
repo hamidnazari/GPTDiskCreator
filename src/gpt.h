@@ -1,6 +1,7 @@
 #ifndef THATDISKCREATOR__GPT_H
 #define THATDISKCREATOR__GPT_H
 
+#include "basic_types.h"
 #include "decl.h"
 #include "guid.h"
 #include <stdint.h>
@@ -34,10 +35,13 @@ typedef struct {
   char slack[LOGICAL_BLOCK_SIZE_B - GPT_HEADER_SIZE_B]; // set to 0 across the board
 } __attribute__((packed)) __attribute__((aligned(LOGICAL_BLOCK_SIZE_B))) gpt_header_t;
 
-// returns Logical Block Address of of an LBA index
-uint64_t get_lba(int64_t index);
+// returns the last Logical Block index on a given disk
+uint64_t get_disk_last_lbi(disk_size_b_t disk_size, block_size_b_t logical_block_size);
 
-// returns last LBA index for the specified size and offset
-uint64_t allocate_lba(u_int64_t offset, u_int32_t size);
+// returns the last Logical Block index for a given size and offset
+uint64_t get_block_lbi(uint64_t offset, uint32_t size, block_size_b_t logical_block_size);
+
+// returns Logical Block Address of a Logical Block index
+uint64_t translate_lbi_to_lba(int64_t index, disk_size_b_t disk_size, block_size_b_t logical_block_size);
 
 #endif // THATDISKCREATOR__GPT_H

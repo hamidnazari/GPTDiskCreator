@@ -1,26 +1,19 @@
-#include "decl.h"
 #include "disk.h"
-#include <printf.h>
-#include <stdlib.h>
+
+static inline disk_size_b_t mb(uint32_t size) {
+  return size << 20;
+}
 
 int main() {
-  if (LOGICAL_BLOCK_MAX > LOGICAL_BLOCK_PRACTICAL_MAX) {
-    fprintf(stderr, "Disk size and block size too large for this program.\n");
-    exit(1);
-  }
+  disk_options_t disk = {
+      .logical_block_size_b = 512,
+      .disk_size_b = mb(100),
+      .esp_index = -1,
+      .partition_sizes_b = {
+          mb(40),
+          mb(58),
+      },
+  };
 
-  FILE *file_ptr = fopen(DISK_FILE_NAME, "we");
-
-  if (file_ptr == NULL) {
-    fprintf(stderr, "Could not create file: '%s'\n", DISK_FILE_NAME);
-    exit(1);
-  }
-
-  write_mbr(file_ptr);
-  write_gpt(file_ptr);
-  write_volumes(file_ptr);
-
-  fclose(file_ptr);
-
-  return 0;
+  return create_disk_image("disk.hdd", &disk);
 }
