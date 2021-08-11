@@ -16,7 +16,7 @@ typedef struct {
   uint16_t partition_name[36]; // 36 UTF-16LE bytes
 } __attribute__((packed)) __attribute__((aligned(128))) gpt_entry_t;
 
-// Logical Block bytes long
+// 512 bytes long
 typedef struct {
   uint8_t signature[8];
   uint8_t revision[4];
@@ -32,8 +32,7 @@ typedef struct {
   uint8_t partitions_count[4];
   uint32_t partition_entry_size;
   uint32_t partition_entries_crc_32;
-  char slack[LOGICAL_BLOCK_SIZE_B - GPT_HEADER_SIZE_B]; // set to 0 across the board
-} __attribute__((packed)) __attribute__((aligned(LOGICAL_BLOCK_SIZE_B))) gpt_header_t;
+} __attribute__((packed)) __attribute__((aligned(512))) gpt_header_t;
 
 // returns the last Logical Block index on a given disk
 uint64_t get_disk_last_lbi(disk_size_b_t disk_size, block_size_b_t logical_block_size);
