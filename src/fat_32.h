@@ -1,8 +1,15 @@
 #ifndef THATDISKCREATOR__FAT_32_H
 #define THATDISKCREATOR__FAT_32_H
 
-#include "decl.h"
 #include <stdint.h>
+
+#define FAT_32_VOLUME_SIZE_MIN_MB 33ULL
+#define FAT_32_VOLUME_SIZE_MIN_B (FAT_32_VOLUME_SIZE_MIN_MB << 20)
+#define FAT_32_VOLUME_SIZE_MAX_GB 32ULL
+#define FAT_32_VOLUME_SIZE_MAX_MB (FAT_32_VOLUME_SIZE_MAX_GB << 10)
+#define FAT_32_VOLUME_SIZE_MAX_B (FAT_32_VOLUME_SIZE_MAX_MB << 20)
+// TODO: add support for bigger disk sizes and hence cluster sizes
+#define FAT_32_CLUSTER_SIZE_B 512
 
 // FAT 32 Extended BIOS Parameter Block
 // 512 bytes long
@@ -38,7 +45,7 @@ typedef struct {
   uint8_t system_identifier[8];
   uint8_t bootstrap[420];
   uint8_t boot_signature[2];
-} __attribute__((packed)) __attribute__((aligned(FAT_32_CLUSTER_SIZE_B))) fat_32_ebpb_t;
+} __attribute__((packed)) __attribute__((aligned(512))) fat_32_ebpb_t;
 
 // 512 bytes long
 typedef struct {
@@ -49,7 +56,7 @@ typedef struct {
   uint32_t next_free_cluster; // set to 0xFFFFFFFF for unknown
   uint8_t reserved_2[12];
   uint32_t trail_signature; // always set to 0xAA550000
-} __attribute__((packed)) __attribute__((aligned(FAT_32_CLUSTER_SIZE_B))) fat_32_fsinfo_t;
+} __attribute__((packed)) __attribute__((aligned(512))) fat_32_fsinfo_t;
 
 uint32_t get_fat_size(uint32_t size, uint16_t reserved_sectors_count, uint8_t sectors_per_cluster, uint8_t number_of_fats);
 

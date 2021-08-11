@@ -3,12 +3,18 @@
 
 #include "basic_types.h"
 #include "crc_32.h"
-#include "decl.h"
 #include "guid.h"
 #include <stdint.h>
 #include <stdio.h>
 
 #define GPT_HEADER_SIZE_B 92
+#define GPT_PARTITION_ARRAY_SIZE_B (16 << 10)
+#define GPT_PARTITION_ARRAY_LENGTH 128
+#define GPT_RESERVED_MB 1
+#define GPT_RESERVED_B (GPT_RESERVED_MB << 20)
+// TODO: can be longer, min partition entries is 4
+// TODO: replace GPT_LBA_COUNT with a variable
+#define GPT_LBA_COUNT (1 + 32)
 
 typedef uint64_t lba_t;
 typedef int64_t signed_lba_t;

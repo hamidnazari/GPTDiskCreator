@@ -1,7 +1,5 @@
 #include "disk.h"
 #include "crc_32.h"
-#include "fat_32.h"
-#include "gpt.h"
 #include "guid.h"
 #include "mbr.h"
 #include "string.h"

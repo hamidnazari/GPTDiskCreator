@@ -1,7 +1,6 @@
 #ifndef THATDISKCREATOR__MBR_H
 #define THATDISKCREATOR__MBR_H
 
-#include "decl.h"
 #include <stdint.h>
 
 // 16 bytes long

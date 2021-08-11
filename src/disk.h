@@ -2,9 +2,16 @@
 #define THATDISKCREATOR__DISK_H
 
 #include "basic_types.h"
-#include "decl.h"
+#include "fat_32.h"
 #include "gpt.h"
 #include <stdio.h>
+
+// TODO: determine minimum size: 33MB, e.g. 32MB (block size 512) + 1MB for MBR+GPT
+#define DISK_SIZE_MIN_MB (FAT_32_VOLUME_SIZE_MIN_MB + GPT_RESERVED_MB)
+#define DISK_SIZE_MIN_B (DISK_SIZE_MIN_MB << 20)
+
+#define DISK_SIZE_MAX_MB (GPT_PARTITION_ARRAY_LENGTH * FAT_32_VOLUME_SIZE_MAX_MB + GPT_RESERVED_MB)
+#define DISK_SIZE_MAX_B (DISK_SIZE_MAX_MB << 20)
 
 typedef enum {
   DISK_SUCCESS = 0,
