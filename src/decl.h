@@ -9,7 +9,6 @@
 // TODO: add support for bigger disk sizes and hence cluster sizes
 #define FAT_32_CLUSTER_SIZE_B 512
 
-#define GPT_HEADER_SIZE_B 92
 // TODO: can be longer, min partition entries is 4
 // TODO: replace GPT_LBA_COUNT with a variable
 #define GPT_LBA_COUNT (1 + 32)

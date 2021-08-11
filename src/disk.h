@@ -6,6 +6,16 @@
 #include "gpt.h"
 #include <stdio.h>
 
+typedef enum {
+  DISK_SUCCESS = 0,
+  DISK_OPTIONS_INVALID_DISK_SIZE = -1,
+  DISK_OPTIONS_INVALID_BLOCK_SIZE = -2,
+  DISK_OPTIONS_INVALID_PARTITION_SIZES = -3,
+  DISK_OPTIONS_INVALID_ESP_INDEX = -4,
+  DISK_FILE_ERROR = -5,
+  DISK_WRITE_ERROR = -6,
+} errors_e;
+
 typedef struct {
   // 0 indicates "inferred", max size of about 4 terabytes, i.e. 4*1024^2 megabytes
   disk_size_b_t disk_size_b;

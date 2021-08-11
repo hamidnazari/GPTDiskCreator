@@ -5,12 +5,12 @@
 #include "guid.h"
 #include "mbr.h"
 #include "string.h"
-#include <stdlib.h>
+#include <stdbool.h>
 
-static const uint64_t esp_first_lba_index = 2048; // TODO: replace with GPT_LBA_COUNT+1?
+static const lba_t esp_first_lba = 2048; // TODO: replace with GPT_LBA_COUNT+1?
 
 static partition_index_t get_valid_partitions_count(const disk_options_t *options) {
-  partition_index_t i = 0;
+  partition_index_t i;
 
   for (i = 0; i <= GPT_PARTITION_ARRAY_LENGTH - 1; ++i) {
     if (options->partition_sizes_b[i] < FAT_32_VOLUME_SIZE_MIN_B || options->partition_sizes_b[i] > FAT_32_VOLUME_SIZE_MAX_B) {
@@ -36,7 +36,7 @@ static disk_size_b_t get_actual_disk_size(const disk_options_t *options) {
   return (options->disk_size_b > 0) ? options->disk_size_b : get_required_disk_size(options);
 }
 
-static disk_options_state_e verify_disk(const disk_options_t *options) {
+static errors_e verify_disk(const disk_options_t *options) {
   disk_size_b_t requested = get_actual_disk_size(options);
   disk_size_b_t required = get_required_disk_size(options);
 
@@ -57,7 +57,7 @@ static disk_options_state_e verify_disk(const disk_options_t *options) {
     return DISK_OPTIONS_INVALID_PARTITION_SIZES;
   }
 
-  return DISK_OPTIONS_VALID;
+  return DISK_SUCCESS;
 }
 
 static size_t write(FILE *file_ptr, const void *ptr, size_t size) {
@@ -71,11 +71,14 @@ static size_t write(FILE *file_ptr, const void *ptr, size_t size) {
   return count;
 }
 
-static void seek_lba(FILE *file_ptr, const disk_options_t *options, uint64_t index) {
+static void seek_lba(FILE *file_ptr, const disk_options_t *options, lba_t lba, bool reverse) {
+  // FIXME: unsigned lba to signed conversion.
+  signed_lba_t signed_lba = reverse ? -lba : lba; // NOLINT(cppcoreguidelines-narrowing-conversions)
   disk_size_b_t disk_size = get_actual_disk_size(options);
-  int64_t lba = translate_lbi_to_lba(index, disk_size, options->logical_block_size_b);
-  // FIXME: fseeko's offset is signed 64bit whereas LBA is unsigned 64bit. Trouble!
-  fseeko(file_ptr, lba, SEEK_SET); // NOLINT(cppcoreguidelines-narrowing-conversions)
+
+  off_t offset = translate_lba_to_offset(signed_lba, disk_size, options->logical_block_size_b);
+
+  fseeko(file_ptr, offset, SEEK_SET);
 }
 
 static void write_mbr(FILE *file_ptr, const disk_options_t *options) {
@@ -85,7 +88,7 @@ static void write_mbr(FILE *file_ptr, const disk_options_t *options) {
       .first_sector = {0x00, 0x02, 0x00}, // from right after the first 512 bytes
       .last_sector = {0xFF, 0xFF, 0xFF}, // all the way to the end of the disk
       .first_lba = 1,
-      .sectors_count = get_disk_last_lbi(options->disk_size_b, options->logical_block_size_b),
+      .sectors_count = get_disk_last_lba(options->disk_size_b, options->logical_block_size_b),
   };
 
   mbr_t mbr = {
@@ -97,17 +100,16 @@ static void write_mbr(FILE *file_ptr, const disk_options_t *options) {
 }
 
 static void write_gpt(FILE *file_ptr, const disk_options_t *options) {
-  const uint32_t partition_entry_size = sizeof(gpt_entry_t);
+  const uint8_t partition_entry_size = sizeof(gpt_entry_t);
   const uint8_t partition_entries_count = GPT_PARTITION_ARRAY_SIZE_B / partition_entry_size;
-  const uint64_t last_usable_lba =
-      get_disk_last_lbi(options->disk_size_b, options->logical_block_size_b) - GPT_LBA_COUNT;
+  const lba_t last_usable_lba = get_disk_last_lba(options->disk_size_b, options->logical_block_size_b) - GPT_LBA_COUNT;
 
   gpt_header_t header = {
       .signature = "EFI PART",
       .revision = {0x00, 0x00, 0x01, 0x00},
       .header_size = GPT_HEADER_SIZE_B,
       .header_lba = 1,
-      .backup_lba = get_disk_last_lbi(options->disk_size_b, options->logical_block_size_b),
+      .backup_lba = get_disk_last_lba(options->disk_size_b, options->logical_block_size_b),
       .first_usable_lba = GPT_LBA_COUNT + 1,
       .last_usable_lba = last_usable_lba,
       .partition_entries_lba = 2,
@@ -116,15 +118,15 @@ static void write_gpt(FILE *file_ptr, const disk_options_t *options) {
       .partition_entry_size = partition_entry_size,
   };
 
-  const uint64_t esp_last_lba_index = -1 + get_block_lbi(esp_first_lba_index, options->partition_sizes_b[0], options->logical_block_size_b);
+  const lba_t esp_last_lba = -1 + get_block_lba(esp_first_lba, options->partition_sizes_b[0], options->logical_block_size_b);
 
-  const uint64_t main_partition_last_lba_index = -1 + get_block_lbi(esp_last_lba_index + 1, options->partition_sizes_b[1], options->logical_block_size_b);
+  const lba_t main_partition_last_lba = -1 + get_block_lba(esp_last_lba + 1, options->partition_sizes_b[1], options->logical_block_size_b);
 
   gpt_entry_t efi_system_partition = {
       .type_guid = parse_guid(GUID_EFI_SYSTEM_PARTITION),
       .partition_guid = get_random_guid(),
-      .first_lba = esp_first_lba_index,
-      .last_lba = esp_last_lba_index,
+      .first_lba = esp_first_lba,
+      .last_lba = esp_last_lba,
       .attributes = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
       .partition_name = u"ESP",
   };
@@ -132,8 +134,8 @@ static void write_gpt(FILE *file_ptr, const disk_options_t *options) {
   gpt_entry_t main_partition = {
       .type_guid = parse_guid(GUID_MICROSOFT_BASIC_DATA_PARTITION),
       .partition_guid = get_random_guid(),
-      .first_lba = esp_last_lba_index + 1, // FIXME: overflow when cluster size > logical block size
-      .last_lba = main_partition_last_lba_index,
+      .first_lba = esp_last_lba + 1, // FIXME: overflow when cluster size > logical block size
+      .last_lba = main_partition_last_lba,
       .attributes = 0,
       .partition_name = u"Main Partition",
   };
@@ -154,7 +156,7 @@ static void write_gpt(FILE *file_ptr, const disk_options_t *options) {
   for (uint8_t i = 0; i < partition_entries_count; ++i) {
     write(file_ptr, &partitions[i], sizeof(gpt_entry_t));
   }
-  seek_lba(file_ptr, options, -GPT_LBA_COUNT - 1);
+  seek_lba(file_ptr, options, GPT_LBA_COUNT + 1, true);
 
   // Backup GPT entries
   for (uint8_t i = 0; i < partition_entries_count; ++i) {
@@ -162,17 +164,17 @@ static void write_gpt(FILE *file_ptr, const disk_options_t *options) {
   }
 
   header.header_crc_32 = 0;
-  header.header_lba = get_disk_last_lbi(options->disk_size_b, options->logical_block_size_b);
+  header.header_lba = get_disk_last_lba(options->disk_size_b, options->logical_block_size_b);
   header.backup_lba = 1;
   header.partition_entries_lba =
-      get_disk_last_lbi(options->disk_size_b, options->logical_block_size_b) - GPT_LBA_COUNT + 1;
+      get_disk_last_lba(options->disk_size_b, options->logical_block_size_b) - GPT_LBA_COUNT + 1;
   header.header_crc_32 = calculate_crc_32((uint8_t *) &header, GPT_HEADER_SIZE_B);
 
   // Backup GPT header
   write(file_ptr, &header, options->logical_block_size_b);
 }
 
-static void write_volume(FILE *file_ptr, const disk_options_t *options, uint64_t offset, partition_index_t partition_index, char *label) {
+static void write_volume(FILE *file_ptr, const disk_options_t *options, lba_t lba, partition_index_t partition_index, char *label) {
   fat_32_ebpb_t ebpb = {
       .jump_boot = {0xEB, 0x58, 0x90},
       .oem = "ThatOS64",
@@ -196,8 +198,7 @@ static void write_volume(FILE *file_ptr, const disk_options_t *options, uint64_t
 
   memcpy(&ebpb.volume_label, label, sizeof(ebpb.volume_label));
 
-  ebpb.sectors_per_fat_32 =
-      get_fat_size(ebpb.large_total_sectors_count, ebpb.reserved_sectors_count, ebpb.sectors_per_cluster, ebpb.number_of_fats);
+  ebpb.sectors_per_fat_32 = get_fat_size(ebpb.large_total_sectors_count, ebpb.reserved_sectors_count, ebpb.sectors_per_cluster, ebpb.number_of_fats);
 
   fat_32_fsinfo_t fsinfo = {
       .lead_signature = 0x41615252,
@@ -207,14 +208,14 @@ static void write_volume(FILE *file_ptr, const disk_options_t *options, uint64_t
       .trail_signature = 0xAA550000,
   };
 
-  seek_lba(file_ptr, options, offset);
+  seek_lba(file_ptr, options, lba, false);
   write(file_ptr, &ebpb, sizeof(ebpb));
 
   // FS Information Sector
   write(file_ptr, &fsinfo, sizeof(fsinfo));
 
   // Backup Boot Sector
-  seek_lba(file_ptr, options, offset + ebpb.backup_boot_sector_cluster_number);
+  seek_lba(file_ptr, options, lba + ebpb.backup_boot_sector_cluster_number, false);
   write(file_ptr, &ebpb, sizeof(ebpb));
 
   uint32_t clusters[3] = {
@@ -223,28 +224,28 @@ static void write_volume(FILE *file_ptr, const disk_options_t *options, uint64_t
       0x0FFFFFF8, // end-of-file for root directory
   };
 
-  uint64_t fat_region_offset = offset + ebpb.reserved_sectors_count;
+  lba_t fat_region_lba = lba + ebpb.reserved_sectors_count;
 
   // FAT Region
   for (uint8_t i = 0; i < ebpb.number_of_fats; ++i) {
-    uint64_t fat_offset = ebpb.sectors_per_fat_32 * i;
-    seek_lba(file_ptr, options, fat_region_offset + fat_offset);
+    lba_t fat_lba = ebpb.sectors_per_fat_32 * i;
+    seek_lba(file_ptr, options, fat_region_lba + fat_lba, false);
     write(file_ptr, &clusters, sizeof(clusters));
   }
 }
 
 static void write_volumes(FILE *file_ptr, const disk_options_t *options) {
-  const uint64_t esp_last_lba_index = -1 + get_block_lbi(esp_first_lba_index, options->partition_sizes_b[0], options->logical_block_size_b) - 1;
+  const lba_t esp_last_lba = -1 + get_block_lba(esp_first_lba, options->partition_sizes_b[0], options->logical_block_size_b) - 1;
 
   write_volume(file_ptr,
                options,
-               esp_first_lba_index,
+               esp_first_lba,
                0,
                "ESP Volume ");
 
   write_volume(file_ptr,
                options,
-               esp_last_lba_index + 1,
+               esp_last_lba + 1,
                1,
                "Main Volume");
 }
@@ -259,8 +260,7 @@ int8_t create_disk_image(const char *file_name, const disk_options_t *options) {
   FILE *file_ptr = fopen(file_name, "we");
 
   if (file_ptr == NULL) {
-    fprintf(stderr, "Could not create file: '%s'\n", file_name);
-    exit(1);
+    return DISK_FILE_ERROR;
   }
 
   write_mbr(file_ptr, options);
