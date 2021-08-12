@@ -11,6 +11,8 @@
 // TODO: add support for bigger disk sizes and hence cluster sizes
 #define FAT_32_CLUSTER_SIZE_B 512
 
+typedef char label_t[11];
+
 // FAT 32 Extended BIOS Parameter Block
 // 512 bytes long
 typedef struct {
@@ -41,7 +43,7 @@ typedef struct {
   uint8_t reserved;
   uint8_t extended_boot_signature; // usually set to 0x29
   uint32_t serial_number;
-  uint8_t volume_label[11];
+  label_t volume_label;
   uint8_t system_identifier[8];
   uint8_t bootstrap[420];
   uint8_t boot_signature[2];

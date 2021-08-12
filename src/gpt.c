@@ -4,8 +4,8 @@ inline lba_t get_disk_last_lba(disk_size_b_t disk_size, block_size_b_t logical_b
   return disk_size / logical_block_size - 1;
 }
 
-inline lba_t get_block_lba(lba_t offset, uint32_t size, block_size_b_t logical_block_size) {
-  return offset + (size / logical_block_size);
+inline lba_t get_block_last_lba(lba_t offset, uint32_t size, block_size_b_t logical_block_size) {
+  return offset + (size / logical_block_size) - 1;
 }
 
 off_t translate_lba_to_offset(signed_lba_t lba, disk_size_b_t disk_size, block_size_b_t logical_block_size) {

@@ -30,8 +30,10 @@ typedef struct {
   block_size_b_t logical_block_size_b;
   // array of partition sizes in megabytes, max partition size of 8 terabytes
   partition_size_b_t partition_sizes_b[GPT_PARTITION_ARRAY_LENGTH];
-  // index of ESP in the partition array, negative values indicate no ESP
-  partition_index_t esp_index;
+  // index of EFI System Partition in the partition array, negative values indicate no ESP
+  partition_index_t efi_system_partition_index;
+  // index of Partition with its boot flag set, negative values indicate no partitions with boot flag
+  partition_index_t boot_partition_index;
 } disk_options_t;
 
 int8_t create_disk_image(const char *file_name, const disk_options_t *options);

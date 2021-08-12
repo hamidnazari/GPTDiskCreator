@@ -8,10 +8,11 @@
 #include <stdio.h>
 
 #define GPT_HEADER_SIZE_B 92
-#define GPT_PARTITION_ARRAY_SIZE_B (16 << 10)
 #define GPT_PARTITION_ARRAY_LENGTH 128
 #define GPT_RESERVED_MB 1
 #define GPT_RESERVED_B (GPT_RESERVED_MB << 20)
+#define GPT_BLOCK_SIZE_MIN_B 512
+#define GPT_BLOCK_SIZE_MAX_B 4096
 // TODO: can be longer, min partition entries is 4
 // TODO: replace GPT_LBA_COUNT with a variable
 #define GPT_LBA_COUNT (1 + 32)
@@ -19,7 +20,8 @@
 typedef uint64_t lba_t;
 typedef int64_t signed_lba_t;
 typedef uint64_t partition_size_b_t;
-typedef int8_t partition_index_t;
+typedef int16_t partition_index_t;
+typedef uint16_t partition_name_t[36];
 
 // 128 bytes long
 typedef struct {
@@ -28,8 +30,10 @@ typedef struct {
   lba_t first_lba;
   lba_t last_lba;
   uint8_t attributes[8];
-  uint16_t partition_name[36]; // 36 UTF-16LE bytes
-} __attribute__((packed)) __attribute__((aligned(128))) gpt_entry_t;
+  partition_name_t partition_name; // UTF-16LE
+} __attribute__((packed)) __attribute__((aligned(128))) gpt_partition_t;
+
+typedef gpt_partition_t gpt_partition_array_t[GPT_PARTITION_ARRAY_LENGTH];
 
 // 512 bytes long
 typedef struct {
@@ -53,7 +57,7 @@ typedef struct {
 lba_t get_disk_last_lba(disk_size_b_t disk_size, block_size_b_t logical_block_size);
 
 // returns the last Logical Block Address index for a given size and offset
-lba_t get_block_lba(lba_t offset, uint32_t size, block_size_b_t logical_block_size);
+lba_t get_block_last_lba(lba_t offset, uint32_t size, block_size_b_t logical_block_size);
 
 // returns disk offset for a given Logical Block Address
 off_t translate_lba_to_offset(signed_lba_t lba, disk_size_b_t disk_size, block_size_b_t logical_block_size);
