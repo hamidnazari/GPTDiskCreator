@@ -14,8 +14,7 @@ typedef struct {
   uint8_t clock_seq_high_and_reserved;
   uint8_t clock_sequence_low;
   uint8_t node[6];
-
-} __attribute__((packed)) __attribute__((aligned(16))) guid_t;
+} __attribute__((packed)) guid_t;
 
 guid_t parse_guid(const char *uuid_string);
 

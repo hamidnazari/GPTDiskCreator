@@ -99,7 +99,7 @@ static void write_mbr(FILE *file_ptr, const disk_options_t *options) {
   };
 
   mbr_t mbr = {
-      .partition = {pmbr_partition, 0x00, 0x00, 0x00},
+      .partition = {pmbr_partition, {0x00}, {0x00}, {0x00}},
       .boot_signature = {0x55, 0xAA},
   };
 
@@ -107,8 +107,10 @@ static void write_mbr(FILE *file_ptr, const disk_options_t *options) {
 }
 
 static void format_partition_number(partition_name_t name, partition_index_t i) {
-  if (i >= 100) name[10] = 0x30 + i / 100;
-  if (i >= 10) name[11] = 0x30 + i / 10;
+  if (i >= 100)
+    name[10] = 0x30 + i / 100;
+  if (i >= 10)
+    name[11] = 0x30 + i / 10;
   name[12] = 0x30 + i;
 }
 
@@ -129,7 +131,7 @@ static void populate_partition_array(const disk_options_t *options, gpt_partitio
         .first_lba = first_lba,
         .last_lba = last_lba,
         .attributes = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 | boot_flag},
-        .partition_name = u"Partition "
+        .partition_name = u"Partition ",
     };
 
     format_partition_number(partition.partition_name, i);
@@ -142,19 +144,19 @@ static void populate_partition_array(const disk_options_t *options, gpt_partitio
 
 static void write_gpt(FILE *file_ptr, const disk_options_t *options) {
   const uint8_t partition_entry_size = sizeof(gpt_partition_t);
-  const lba_t last_usable_lba = get_disk_last_lba(options->disk_size_b, options->logical_block_size_b) - GPT_LBA_COUNT;
+  const lba_t disk_last_lba = get_disk_last_lba(options->disk_size_b, options->logical_block_size_b);
 
   gpt_header_t header = {
       .signature = "EFI PART",
       .revision = {0x00, 0x00, 0x01, 0x00},
-      .header_size = GPT_HEADER_SIZE_B,
+      .header_size = {GPT_HEADER_SIZE_B},
       .header_lba = 1,
-      .backup_lba = get_disk_last_lba(options->disk_size_b, options->logical_block_size_b),
+      .backup_lba = disk_last_lba,
       .first_usable_lba = GPT_LBA_COUNT + 1,
-      .last_usable_lba = last_usable_lba,
+      .last_usable_lba = disk_last_lba - GPT_LBA_COUNT,
       .partition_entries_lba = 2,
       .disk_guid = get_random_guid(),
-      .partitions_count = GPT_PARTITION_ARRAY_LENGTH,
+      .partitions_count = {GPT_PARTITION_ARRAY_LENGTH},
       .partition_entry_size = partition_entry_size,
   };
 
@@ -172,7 +174,7 @@ static void write_gpt(FILE *file_ptr, const disk_options_t *options) {
   for (partition_index_t i = 0; i < GPT_PARTITION_ARRAY_LENGTH; ++i) {
     write(file_ptr, &partition_array[i], sizeof(gpt_partition_t));
   }
-  seek_lba(file_ptr, options, GPT_LBA_COUNT + 1, true);
+  seek_lba(file_ptr, options, GPT_LBA_COUNT, true);
 
   // Backup GPT entries
   for (partition_index_t i = 0; i < GPT_PARTITION_ARRAY_LENGTH; ++i) {
@@ -180,10 +182,9 @@ static void write_gpt(FILE *file_ptr, const disk_options_t *options) {
   }
 
   header.header_crc_32 = 0;
-  header.header_lba = get_disk_last_lba(options->disk_size_b, options->logical_block_size_b);
+  header.header_lba = disk_last_lba;
   header.backup_lba = 1;
-  header.partition_entries_lba =
-      get_disk_last_lba(options->disk_size_b, options->logical_block_size_b) - GPT_LBA_COUNT + 1;
+  header.partition_entries_lba = disk_last_lba - GPT_LBA_COUNT + 1;
   header.header_crc_32 = calculate_crc_32((uint8_t *) &header, GPT_HEADER_SIZE_B);
 
   // Backup GPT header
@@ -269,7 +270,7 @@ int8_t create_disk_image(const char *file_name, const disk_options_t *options) {
     return options_verification;
   }
 
-  FILE *file_ptr = fopen(file_name, "we");
+  FILE *file_ptr = fopen(file_name, "w");
 
   if (file_ptr == NULL) {
     return DISK_FILE_ERROR;
