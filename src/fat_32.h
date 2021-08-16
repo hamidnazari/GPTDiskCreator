@@ -9,8 +9,6 @@
 #define FAT_32_VOLUME_SIZE_MAX_GB 32ULL
 #define FAT_32_VOLUME_SIZE_MAX_MB (FAT_32_VOLUME_SIZE_MAX_GB << 10)
 #define FAT_32_VOLUME_SIZE_MAX_B gb(FAT_32_VOLUME_SIZE_MAX_GB)
-// TODO: add support for bigger disk sizes and hence cluster sizes
-#define FAT_32_CLUSTER_SIZE_B 512
 
 typedef char label_t[11];
 
@@ -19,7 +17,7 @@ typedef char label_t[11];
 typedef struct {
   uint8_t jump_boot[3]; // fixed value
   uint8_t oem[8];
-  uint16_t bytes_per_sector;
+  block_size_b_t bytes_per_sector;
   uint8_t sectors_per_cluster;
   uint16_t reserved_sectors_count; // usually set to 32
   uint8_t number_of_fats; // commonly set to 2
@@ -61,10 +59,8 @@ typedef struct {
   uint32_t trail_signature; // always set to 0xAA550000
 } __attribute__((packed)) __attribute__((aligned(512))) fat_32_fsinfo_t;
 
-uint32_t get_fat_size(uint32_t size, uint16_t reserved_sectors_count, uint8_t sectors_per_cluster, uint8_t number_of_fats);
+void populate_fat_32_ebpb(fat_32_ebpb_t *ebpb_out, partition_size_b_t partition_size_b, block_size_b_t sector_size_b, char *label);
 
-uint32_t get_serial_number();
-
-uint16_t get_cluster_size(partition_size_b_t partition_size);
+void populate_fat_32_fsinfo(fat_32_fsinfo_t *fsinfo_out, const fat_32_ebpb_t *ebpb);
 
 #endif // THATDISKCREATOR__FAT_32_H

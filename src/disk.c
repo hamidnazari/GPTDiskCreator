@@ -107,14 +107,12 @@ static void write_mbr(FILE *file_ptr, const disk_options_t *options) {
 }
 
 static void format_partition_number(partition_name_t name, partition_index_t i) {
-  if (i >= 100)
-    name[10] = 0x30 + i / 100;
-  if (i >= 10)
-    name[11] = 0x30 + i / 10;
+  if (i >= 100) name[10] = 0x30 + i / 100;
+  if (i >= 10) name[11] = 0x30 + i / 10;
   name[12] = 0x30 + i;
 }
 
-static void populate_partition_array(const disk_options_t *options, gpt_partition_array_t partition_array) {
+static void populate_partition_array(gpt_partition_array_t partition_array_out, const disk_options_t *options) {
   lba_t first_lba = FAT_32_VOLUMES_LBA;
 
   for (partition_index_t i = 0; i < get_valid_partitions_count(options); ++i) {
@@ -136,7 +134,7 @@ static void populate_partition_array(const disk_options_t *options, gpt_partitio
 
     format_partition_number(partition.partition_name, i);
 
-    memcpy(&partition_array[i], &partition, sizeof(gpt_partition_t));
+    memcpy(&partition_array_out[i], &partition, sizeof(gpt_partition_t));
 
     first_lba = last_lba + 1;
   }
@@ -162,7 +160,7 @@ static void write_gpt(FILE *file_ptr, const disk_options_t *options) {
 
   gpt_partition_array_t partition_array = {0};
 
-  populate_partition_array(options, partition_array);
+  populate_partition_array(partition_array, options);
 
   header.partition_entries_crc_32 = calculate_crc_32((uint8_t *) &partition_array, sizeof(partition_array));
   header.header_crc_32 = calculate_crc_32((uint8_t *) &header, GPT_HEADER_SIZE_B);
@@ -192,49 +190,25 @@ static void write_gpt(FILE *file_ptr, const disk_options_t *options) {
 }
 
 static void write_volume(FILE *file_ptr, const disk_options_t *options, lba_t offset_lba, partition_index_t partition_index, char *label) {
-  fat_32_ebpb_t ebpb = {
-      .jump_boot = {0xEB, 0x58, 0x90},
-      .oem = "ThatOS64",
-      .bytes_per_sector = options->logical_block_size_b,
-      .sectors_per_cluster = get_cluster_size(options->partition_sizes_b[partition_index]) / options->logical_block_size_b,
-      .reserved_sectors_count = 32,
-      .number_of_fats = 2,
-      .media_descriptor = 0xF8,
-      .sectors_per_track = 32,
-      .number_of_heads = 64,
-      .large_total_sectors_count = options->partition_sizes_b[partition_index] / options->logical_block_size_b,
-      .root_directory_cluster_number = 2,
-      .fsinfo_sector_number = 1,
-      .backup_boot_sector_cluster_number = 6,
-      .drive_number = 0x80,
-      .extended_boot_signature = 0x29,
-      .serial_number = get_serial_number(),
-      .system_identifier = "FAT32   ",
-      .boot_signature = {0x55, 0xAA},
-  };
+  fat_32_ebpb_t ebpb;
+  fat_32_fsinfo_t fsinfo;
 
-  memcpy(&ebpb.volume_label, label, sizeof(ebpb.volume_label));
-
-  ebpb.sectors_per_fat_32 = get_fat_size(ebpb.large_total_sectors_count, ebpb.reserved_sectors_count, ebpb.sectors_per_cluster, ebpb.number_of_fats);
-
-  fat_32_fsinfo_t fsinfo = {
-      .lead_signature = 0x41615252,
-      .struct_signature = 0x61417272,
-      .free_cluster_count = ebpb.large_total_sectors_count - ebpb.reserved_sectors_count - (ebpb.sectors_per_fat_32 * ebpb.number_of_fats) - 1,
-      .next_free_cluster = 2,
-      .trail_signature = 0xAA550000,
-  };
+  // Extended BIOS Parameter Block
+  populate_fat_32_ebpb(&ebpb, options->partition_sizes_b[partition_index], options->logical_block_size_b, label);
 
   seek_lba(file_ptr, options, offset_lba, false);
   write(file_ptr, &ebpb, sizeof(ebpb));
 
   // FS Information Sector
+  populate_fat_32_fsinfo(&fsinfo, &ebpb);
+
   write(file_ptr, &fsinfo, sizeof(fsinfo));
 
   // Backup Boot Sector
   seek_lba(file_ptr, options, offset_lba + ebpb.backup_boot_sector_cluster_number, false);
   write(file_ptr, &ebpb, sizeof(ebpb));
 
+  // FAT Region
   uint32_t clusters[3] = {
       0x0FFFFF00 | ebpb.media_descriptor,
       0x0FFFFFFF,
@@ -243,7 +217,6 @@ static void write_volume(FILE *file_ptr, const disk_options_t *options, lba_t of
 
   lba_t fat_region_lba = offset_lba + ebpb.reserved_sectors_count;
 
-  // FAT Region
   for (uint8_t i = 0; i < ebpb.number_of_fats; ++i) {
     lba_t fat_lba = ebpb.sectors_per_fat_32 * i;
     seek_lba(file_ptr, options, fat_region_lba + fat_lba, false);
