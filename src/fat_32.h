@@ -1,13 +1,14 @@
 #ifndef THATDISKCREATOR__FAT_32_H
 #define THATDISKCREATOR__FAT_32_H
 
+#include "basic_types.h"
 #include <stdint.h>
 
 #define FAT_32_VOLUME_SIZE_MIN_MB 33ULL
-#define FAT_32_VOLUME_SIZE_MIN_B (FAT_32_VOLUME_SIZE_MIN_MB << 20)
+#define FAT_32_VOLUME_SIZE_MIN_B mb(FAT_32_VOLUME_SIZE_MIN_MB)
 #define FAT_32_VOLUME_SIZE_MAX_GB 32ULL
 #define FAT_32_VOLUME_SIZE_MAX_MB (FAT_32_VOLUME_SIZE_MAX_GB << 10)
-#define FAT_32_VOLUME_SIZE_MAX_B (FAT_32_VOLUME_SIZE_MAX_MB << 20)
+#define FAT_32_VOLUME_SIZE_MAX_B gb(FAT_32_VOLUME_SIZE_MAX_GB)
 // TODO: add support for bigger disk sizes and hence cluster sizes
 #define FAT_32_CLUSTER_SIZE_B 512
 
@@ -63,5 +64,7 @@ typedef struct {
 uint32_t get_fat_size(uint32_t size, uint16_t reserved_sectors_count, uint8_t sectors_per_cluster, uint8_t number_of_fats);
 
 uint32_t get_serial_number();
+
+uint16_t get_cluster_size(partition_size_b_t partition_size);
 
 #endif // THATDISKCREATOR__FAT_32_H

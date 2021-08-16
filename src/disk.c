@@ -138,7 +138,7 @@ static void populate_partition_array(const disk_options_t *options, gpt_partitio
 
     memcpy(&partition_array[i], &partition, sizeof(gpt_partition_t));
 
-    first_lba = last_lba + 1; // FIXME: risk of overflow when cluster size > logical block size
+    first_lba = last_lba + 1;
   }
 }
 
@@ -196,7 +196,7 @@ static void write_volume(FILE *file_ptr, const disk_options_t *options, lba_t of
       .jump_boot = {0xEB, 0x58, 0x90},
       .oem = "ThatOS64",
       .bytes_per_sector = options->logical_block_size_b,
-      .sectors_per_cluster = FAT_32_CLUSTER_SIZE_B / options->logical_block_size_b,
+      .sectors_per_cluster = get_cluster_size(options->partition_sizes_b[partition_index]) / options->logical_block_size_b,
       .reserved_sectors_count = 32,
       .number_of_fats = 2,
       .media_descriptor = 0xF8,

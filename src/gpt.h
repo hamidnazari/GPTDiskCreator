@@ -10,7 +10,7 @@
 #define GPT_HEADER_SIZE_B 92
 #define GPT_PARTITION_ARRAY_LENGTH 128
 #define GPT_RESERVED_MB 1
-#define GPT_RESERVED_B (GPT_RESERVED_MB << 20)
+#define GPT_RESERVED_B mb(GPT_RESERVED_MB)
 #define GPT_BLOCK_SIZE_MIN_B 512
 #define GPT_BLOCK_SIZE_MAX_B 4096
 // TODO: can be longer, min partition entries is 4
@@ -19,7 +19,6 @@
 
 typedef uint64_t lba_t;
 typedef int64_t signed_lba_t;
-typedef uint64_t partition_size_b_t;
 typedef int16_t partition_index_t;
 typedef uint16_t partition_name_t[36];
 
