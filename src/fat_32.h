@@ -23,7 +23,7 @@ typedef struct {
   uint8_t number_of_fats; // commonly set to 2
   uint16_t root_entries_count; // always set to 0 for FAT32
   uint16_t total_sectors_count; // too small for FAT32. set to 0. use large_total_sectors_count instead.
-  uint8_t media_descriptor; // must reflect the media descriptor stored (in the entry for cluster 0) in the first byte of each copy of the FAT
+  uint8_t media_descriptor; // must reflect the media descriptor stored in the first byte of each copy of the FAT
   uint16_t sectors_per_fat; // unused by FAT32. set to 0. use sectors_per_fat_32 instead.
   uint16_t sectors_per_track;
   uint16_t number_of_heads;

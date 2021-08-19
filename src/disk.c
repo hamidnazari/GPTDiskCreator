@@ -101,9 +101,7 @@ static void populate_partition_array(gpt_partition_array_t partition_array_out, 
     bool is_esp = (i == options->efi_system_partition_index);
     uint8_t boot_flag = (i == options->boot_partition_index) ? 1 : 0;
 
-    const lba_t last_lba = get_block_last_lba(first_lba,
-                                              options->partition_sizes_b[i],
-                                              options->logical_block_size_b);
+    const lba_t last_lba = get_block_last_lba(first_lba, options->partition_sizes_b[i], options->logical_block_size_b);
 
     gpt_partition_t partition;
     populate_gpt_partition(&partition, first_lba, last_lba, boot_flag, is_esp, i);

@@ -31,10 +31,7 @@ uint16_t get_cluster_size(partition_size_b_t partition_size_b) {
   return kb(32);
 }
 
-void populate_fat_32_ebpb(fat_32_ebpb_t *ebpb_out,
-                          partition_size_b_t partition_size_b,
-                          block_size_b_t sector_size_b,
-                          label_t label) {
+void populate_fat_32_ebpb(fat_32_ebpb_t *ebpb_out, partition_size_b_t partition_size_b, block_size_b_t sector_size_b, label_t label) {
   fat_32_ebpb_t ebpb = {
       .jump_boot = {0xEB, 0x58, 0x90},
       .oem = "ThatOS64",
@@ -58,10 +55,7 @@ void populate_fat_32_ebpb(fat_32_ebpb_t *ebpb_out,
 
   memcpy(&ebpb.volume_label, label, sizeof(ebpb.volume_label));
 
-  ebpb.sectors_per_fat_32 = get_fat_32_size(ebpb.large_total_sectors_count,
-                                            ebpb.reserved_sectors_count,
-                                            ebpb.sectors_per_cluster,
-                                            ebpb.number_of_fats);
+  ebpb.sectors_per_fat_32 = get_fat_32_size(ebpb.large_total_sectors_count, ebpb.reserved_sectors_count, ebpb.sectors_per_cluster, ebpb.number_of_fats);
 
   memcpy(ebpb_out, &ebpb, sizeof(fat_32_ebpb_t));
 }
