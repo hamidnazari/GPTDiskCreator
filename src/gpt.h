@@ -4,8 +4,8 @@
 #include "basic_types.h"
 #include "crc_32.h"
 #include "guid.h"
+#include "lba.h"
 #include <stdint.h>
-#include <stdio.h>
 
 #define GPT_HEADER_SIZE_B 92
 #define GPT_PARTITION_ARRAY_LENGTH 128
@@ -17,8 +17,6 @@
 // TODO: replace GPT_LBA_COUNT with a variable
 #define GPT_LBA_COUNT (1 + 32)
 
-typedef uint64_t lba_t;
-typedef int64_t signed_lba_t;
 typedef int16_t partition_index_t;
 typedef uint16_t partition_name_t[36];
 
@@ -52,13 +50,5 @@ typedef struct {
   crc_32_t partition_entries_crc_32;
 } __attribute__((packed)) __attribute__((aligned(512))) gpt_header_t;
 
-// returns the last Logical Block Address on a given disk
-lba_t get_disk_last_lba(disk_size_b_t disk_size, block_size_b_t logical_block_size);
-
-// returns the last Logical Block Address index for a given size and offset
-lba_t get_block_last_lba(lba_t offset, uint32_t size, block_size_b_t logical_block_size);
-
-// returns disk offset for a given Logical Block Address
-off_t translate_lba_to_offset(signed_lba_t lba, disk_size_b_t disk_size, block_size_b_t logical_block_size);
 
 #endif // THATDISKCREATOR__GPT_H
