@@ -9,14 +9,12 @@
 #include <stdint.h>
 
 #define GPT_HEADER_SIZE_B 92
+#define GPT_PARTITION_ARRAY_SIZE_B kb(16)
 #define GPT_PARTITION_ARRAY_LENGTH 128
 #define GPT_RESERVED_MB 1
 #define GPT_RESERVED_B mb(GPT_RESERVED_MB)
 #define GPT_BLOCK_SIZE_MIN_B 512
 #define GPT_BLOCK_SIZE_MAX_B 4096
-// TODO: can be longer, min partition entries is 4
-// TODO: replace GPT_LBA_COUNT with a variable
-#define GPT_LBA_COUNT (1 + 32)
 
 typedef int16_t partition_index_t;
 typedef uint16_t partition_name_t[36];
@@ -56,5 +54,13 @@ void populate_gpt_header(gpt_header_t *header_out, lba_t header_lba, lba_t backu
 void populate_gpt_backup_header(gpt_header_t *header_out, const gpt_header_t *header);
 
 void populate_gpt_partition(gpt_partition_t *partition_out, lba_t first_lba, lba_t last_lba, uint8_t boot_flag, bool is_esp, partition_index_t name_index);
+
+static inline uint8_t get_gpt_lba_count(block_size_b_t logical_block_size_b) {
+  return (GPT_PARTITION_ARRAY_SIZE_B / logical_block_size_b) + 2; // +1 PMBR +1 Header
+}
+
+static inline uint8_t get_backup_gpt_lba_count(block_size_b_t logical_block_size_b) {
+  return get_gpt_lba_count(logical_block_size_b) - 1; // -1 PMBR
+}
 
 #endif // THATDISKCREATOR__GPT_H

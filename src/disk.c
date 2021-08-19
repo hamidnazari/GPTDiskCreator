@@ -114,15 +114,16 @@ static void populate_partition_array(gpt_partition_array_t partition_array_out, 
 
 static void write_gpt(FILE *file_ptr, const disk_options_t *options) {
   const lba_t disk_last_lba = get_disk_last_lba(options->disk_size_b, options->logical_block_size_b); // remove
+  const uint8_t first_usable_lba = get_gpt_lba_count(options->logical_block_size_b);
+  const lba_t last_usable_lba = disk_last_lba - get_backup_gpt_lba_count(options->logical_block_size_b);
 
   gpt_partition_array_t partition_array = {0};
   populate_partition_array(partition_array, options);
   crc_32_t partitions_crc_32 = calculate_crc_32((uint8_t *) &partition_array, sizeof(partition_array));
 
-
   // GPT Header
   gpt_header_t header;
-  populate_gpt_header(&header, 1, disk_last_lba, GPT_LBA_COUNT + 1, disk_last_lba - GPT_LBA_COUNT, partitions_crc_32);
+  populate_gpt_header(&header, 1, disk_last_lba, first_usable_lba, last_usable_lba, partitions_crc_32);
 
   write(file_ptr, &header, options->logical_block_size_b);
 
@@ -130,7 +131,8 @@ static void write_gpt(FILE *file_ptr, const disk_options_t *options) {
   for (partition_index_t i = 0; i < GPT_PARTITION_ARRAY_LENGTH; ++i) {
     write(file_ptr, &partition_array[i], sizeof(gpt_partition_t));
   }
-  seek_lba(file_ptr, options, GPT_LBA_COUNT, true);
+
+  seek_lba(file_ptr, options, get_backup_gpt_lba_count(options->logical_block_size_b), true);
 
   // Backup GPT entries
   for (partition_index_t i = 0; i < GPT_PARTITION_ARRAY_LENGTH; ++i) {

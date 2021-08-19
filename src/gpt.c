@@ -27,7 +27,7 @@ void populate_gpt_backup_header(gpt_header_t *header_out, const gpt_header_t *he
   header_out->header_crc_32 = 0;
   header_out->header_lba = header->backup_lba;
   header_out->backup_lba = header->header_lba;
-  header_out->partition_entries_lba = header->backup_lba - GPT_LBA_COUNT + 1;
+  header_out->partition_entries_lba = header->last_usable_lba + 1;
   header_out->header_crc_32 = calculate_crc_32((uint8_t *) header_out, GPT_HEADER_SIZE_B);
 }
 
