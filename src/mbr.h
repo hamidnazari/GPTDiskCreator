@@ -1,6 +1,7 @@
 #ifndef THATDISKCREATOR__MBR_H
 #define THATDISKCREATOR__MBR_H
 
+#include "basic_types.h"
 #include <stdint.h>
 
 // 16 bytes long
@@ -21,5 +22,7 @@ typedef struct {
   mbr_entry_t partition[4]; // only the first partition is used by UEFI
   uint8_t boot_signature[2];
 } __attribute__((packed)) __attribute__((aligned(512))) mbr_t;
+
+void populate_mbr(mbr_t *mbr_out, disk_size_b_t disk_size_b, block_size_b_t logical_block_size_b);
 
 #endif // THATDISKCREATOR__MBR_H
