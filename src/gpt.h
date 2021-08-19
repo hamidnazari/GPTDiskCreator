@@ -5,6 +5,7 @@
 #include "crc_32.h"
 #include "guid.h"
 #include "lba.h"
+#include <stdbool.h>
 #include <stdint.h>
 
 #define GPT_HEADER_SIZE_B 92
@@ -50,5 +51,10 @@ typedef struct {
   crc_32_t partition_entries_crc_32;
 } __attribute__((packed)) __attribute__((aligned(512))) gpt_header_t;
 
+void populate_gpt_header(gpt_header_t *header_out, lba_t header_lba, lba_t backup_lba, lba_t first_lba, lba_t last_lba, crc_32_t partition_entries_crc_32);
+
+void populate_gpt_backup_header(gpt_header_t *header_out, const gpt_header_t *header);
+
+void populate_gpt_partition(gpt_partition_t *partition_out, lba_t first_lba, lba_t last_lba, uint8_t boot_flag, bool is_esp, partition_index_t name_index);
 
 #endif // THATDISKCREATOR__GPT_H
