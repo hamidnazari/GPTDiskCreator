@@ -1,8 +1,10 @@
 #include "disk.h"
 #include "crc_32.h"
 #include "mbr.h"
-#include "string.h"
+#include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <time.h>
 
 // half for header itself, the other half for its backup
 #define FAT_32_VOLUMES_LBA (GPT_RESERVED_B / GPT_BLOCK_SIZE_MAX_B / 2)
@@ -194,6 +196,8 @@ static void write_volumes(FILE *file_ptr, const disk_options_t *options) {
 }
 
 int8_t create_disk_image(const char *file_name, const disk_options_t *options) {
+  srand(time(NULL));
+
   int8_t options_verification = verify_disk_options(options);
 
   if (options_verification < 0) {
