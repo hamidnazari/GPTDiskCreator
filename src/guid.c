@@ -48,4 +48,3 @@ guid_t get_random_guid() {
 
   return guid;
 }
-

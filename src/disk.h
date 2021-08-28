@@ -26,7 +26,7 @@ typedef enum {
 typedef struct {
   // 0 indicates "inferred", max size of about 4 terabytes, i.e. 4*1024^2 megabytes
   disk_size_b_t disk_size_b;
-  // supports up to 4096 bytes
+  // 512 is the only supported value, however multiples of 512 up to 4096 are allowed only experimentally
   block_size_b_t logical_block_size_b;
   // array of partition sizes in megabytes, max partition size of 8 terabytes
   partition_size_b_t partition_sizes_b[GPT_PARTITION_ARRAY_LENGTH];
@@ -36,6 +36,6 @@ typedef struct {
   partition_index_t boot_partition_index;
 } disk_options_t;
 
-int8_t create_disk_image(const char *file_name, const disk_options_t *options);
+errors_e create_disk_image(const char *file_name, const disk_options_t *options);
 
 #endif //THATDISKCREATOR__DISK_H
