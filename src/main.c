@@ -15,5 +15,34 @@ int main() {
       },
   };
 
-  return create_disk_image("disk.hdd", &disk);
+  errors_e exit_code = create_disk_image("disk.hdd", &disk);
+
+  switch (exit_code) {
+  case DISK_OPERATION_SUCCESS:
+    printf("Virtual disk file creation successful.");
+    break;
+  case DISK_OPTIONS_INVALID_DISK_SIZE:
+    fprintf(stderr, "Error: invalid disk size requested.");
+    break;
+  case DISK_OPTIONS_INVALID_LOGICAL_BLOCK_SIZE:
+    fprintf(stderr, "Error: invalid logical block size requested.");
+    break;
+  case DISK_OPTIONS_INVALID_PARTITION_SIZES:
+    fprintf(stderr, "Error: invalid partition size requested.");
+    break;
+  case DISK_OPTIONS_INVALID_ESP_INDEX:
+    fprintf(stderr, "Error: requested ESP index is invalid.");
+    break;
+  case DISK_OPTIONS_INVALID_BOOT_PARTITION_INDEX:
+    fprintf(stderr, "Error: requested boot partition index is invalid.");
+    break;
+  case DISK_FILE_ERROR:
+    fprintf(stderr, "Error: could not not create virtual disk file.");
+    break;
+  case DISK_WRITE_ERROR:
+    fprintf(stderr, "Error: could not not write to virtual disk file.");
+    break;
+  }
+
+  return exit_code;
 }

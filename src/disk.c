@@ -1,6 +1,7 @@
 #include "disk.h"
 #include "crc_32.h"
 #include "mbr.h"
+#include <setjmp.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +9,8 @@
 
 // half for header itself, the other half for its backup
 #define FAT_32_VOLUMES_LBA (GPT_RESERVED_B / GPT_BLOCK_SIZE_MAX_B / 2)
+
+static jmp_buf write_error_jump;
 
 static partition_index_t get_valid_partitions_count(const disk_options_t *options) {
   partition_index_t i;
@@ -53,11 +56,11 @@ static errors_e verify_disk_options(const disk_options_t *options) {
   }
 
   if (options->logical_block_size_b % 512 != 0) {
-    return DISK_OPTIONS_INVALID_BLOCK_SIZE;
+    return DISK_OPTIONS_INVALID_LOGICAL_BLOCK_SIZE;
   }
 
   if (options->logical_block_size_b < GPT_BLOCK_SIZE_MIN_B || options->logical_block_size_b > GPT_BLOCK_SIZE_MAX_B) {
-    return DISK_OPTIONS_INVALID_BLOCK_SIZE;
+    return DISK_OPTIONS_INVALID_LOGICAL_BLOCK_SIZE;
   }
 
   partition_index_t valid_partitions_count = get_valid_partitions_count(options);
@@ -65,7 +68,15 @@ static errors_e verify_disk_options(const disk_options_t *options) {
     return DISK_OPTIONS_INVALID_PARTITION_SIZES;
   }
 
-  return DISK_SUCCESS;
+  if (options->efi_system_partition_index > valid_partitions_count - 1) {
+    return DISK_OPTIONS_INVALID_ESP_INDEX;
+  }
+
+  if (options->boot_partition_index > valid_partitions_count - 1) {
+    return DISK_OPTIONS_INVALID_BOOT_PARTITION_INDEX;
+  }
+
+  return DISK_OPERATION_SUCCESS;
 }
 
 static size_t write(FILE *file_ptr, const void *ptr, size_t size, block_size_b_t block_size_b) {
@@ -80,7 +91,7 @@ static size_t write(FILE *file_ptr, const void *ptr, size_t size, block_size_b_t
   }
 
   if (count < nitems) {
-    fprintf(stderr, "Write to disk was unsuccessful!\n");
+    longjmp(write_error_jump, DISK_WRITE_ERROR);
   }
 
   return count;
@@ -203,6 +214,8 @@ static void write_volumes(FILE *file_ptr, const disk_options_t *options) {
 }
 
 errors_e create_disk_image(const char *file_name, const disk_options_t *options) {
+  errors_e return_code = DISK_OPERATION_SUCCESS;
+
   srand(time(NULL));
 
   int8_t options_verification = verify_disk_options(options);
@@ -217,11 +230,15 @@ errors_e create_disk_image(const char *file_name, const disk_options_t *options)
     return DISK_FILE_ERROR;
   }
 
-  write_mbr(file_ptr, options);
-  write_gpt(file_ptr, options);
-  write_volumes(file_ptr, options);
+  if (setjmp(write_error_jump)) {
+    return_code = DISK_WRITE_ERROR;
+  } else {
+    write_mbr(file_ptr, options);
+    write_gpt(file_ptr, options);
+    write_volumes(file_ptr, options);
+  }
 
   fclose(file_ptr);
 
-  return DISK_SUCCESS;
+  return return_code;
 }
