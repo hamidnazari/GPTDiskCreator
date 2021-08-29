@@ -9,7 +9,7 @@ void populate_mbr(mbr_t *mbr_out, disk_size_b_t disk_size_b, block_size_b_t logi
       .first_sector = {0x00, 0x02, 0x00}, // from right after the first 512 bytes
       .last_sector = {0xFF, 0xFF, 0xFF}, // all the way to the end of the disk
       .first_lba = 1,
-      .sectors_count = get_disk_last_lba(disk_size_b, logical_block_size_b),
+      .sectors_count = get_disk_last_lba(disk_size_b, logical_block_size_b) + 1,
   };
 
   mbr_t mbr = {
